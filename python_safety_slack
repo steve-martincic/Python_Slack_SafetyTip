@@ -1,0 +1,35 @@
+import random
+import slack
+import requests
+from bs4 import BeautifulSoup
+
+# Define the URL of the website to harvest safety tips from
+safety_tips_url = "https://www.osha.gov/seasonal-worker-safety-tips"
+
+# Create a Slack client
+client = slack.WebClient(token="YOUR_SLACK_TOKEN")
+
+# Get the HTML of the safety tips website
+response = requests.get(safety_tips_url)
+
+# Create a BeautifulSoup object from the HTML
+soup = BeautifulSoup(response.content, "html.parser")
+
+# Extract the safety tips from the HTML
+safety_tips = []
+for tip in soup.find_all("li", class_="tip"):
+    safety_tips.append(tip.text)
+
+# Send a random safety tip to the specified Slack channel
+def send_safety_tip(channel):
+    tip = random.choice(safety_tips)
+    client.chat_postMessage(channel=channel, text=tip)
+
+# Schedule a job to send a safety tip at 7am and 7pm
+import schedule
+schedule.every().day.at("07:00").do(send_safety_tip, "#safety-tips")
+schedule.every().day.at("19:00").do(send_safety_tip, "#safety-tips")
+
+# Start the scheduler
+while True:
+    schedule.run_pending()
